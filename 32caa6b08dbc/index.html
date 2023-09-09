@@ -1,0 +1,532 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>Linux Tc命令流量控制 | Noal</title><meta name="author" content="orz"><meta name="copyright" content="orz"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="概述&amp;emsp;&amp;emsp;Tc命令的全称为 Traffic Control，是 iproute2 包中控制内核流量的工具。tc 在内核网络协议栈的 XDP 之后、netfilter 之前读取数据包，对其进行控制、分发和丢弃等操作。tc 既可以处理传出的数据包，也可以处理传入的数据包，但是对传入的数据包处理较少。 &amp;emsp;&amp;emsp;本文主要参考《Linux Advanced Routing">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux Tc命令流量控制">
+<meta property="og:url" content="https://www.m5xhsy.wiki/32caa6b08dbc/index.html">
+<meta property="og:site_name" content="Noal">
+<meta property="og:description" content="概述&amp;emsp;&amp;emsp;Tc命令的全称为 Traffic Control，是 iproute2 包中控制内核流量的工具。tc 在内核网络协议栈的 XDP 之后、netfilter 之前读取数据包，对其进行控制、分发和丢弃等操作。tc 既可以处理传出的数据包，也可以处理传入的数据包，但是对传入的数据包处理较少。 &amp;emsp;&amp;emsp;本文主要参考《Linux Advanced Routing">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://www.m5xhsy.wiki/statics/img/cover/tmp6.webp">
+<meta property="article:published_time" content="2023-09-06T02:43:03.000Z">
+<meta property="article:modified_time" content="2023-09-06T02:43:03.000Z">
+<meta property="article:author" content="orz">
+<meta property="article:tag" content="Qos">
+<meta property="article:tag" content="tc">
+<meta property="article:tag" content="iprout2">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.m5xhsy.wiki/statics/img/cover/tmp6.webp"><link rel="shortcut icon" href="/statics/img/core/avatar.webp"><link rel="canonical" href="https://www.m5xhsy.wiki/32caa6b08dbc/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/4.0.31/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":50,"languages":{"author":"作者: orz","link":"链接: ","source":"来源: Noal","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdnjs.cloudflare.com/ajax/libs/flickr-justified-gallery/2.1.2/fjGallery.min.js',
+      css: 'https://cdnjs.cloudflare.com/ajax/libs/flickr-justified-gallery/2.1.2/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Linux Tc命令流量控制',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-09-06 10:43:03'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          const now = new Date()
+          const hour = now.getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else if (t === 'light') activateLightMode()
+          else activateDarkMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><link rel="stylesheet" href="/statics/css/style.css"><link rel="stylesheet" href="/statics/css/universe.css"><link rel="stylesheet" href="/statics/css/right_button.css"><meta name="generator" content="Hexo 6.3.0"></head><body><div id="web_bg"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/statics/img/core/avatar.webp" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">9</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/statics/img/top/default.webp')"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">Noal</a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Linux Tc命令流量控制</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-09-06T02:43:03.000Z" title="发表于 2023-09-06 10:43:03">2023-09-06</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-09-06T02:43:03.000Z" title="更新于 2023-09-06 10:43:03">2023-09-06</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Linux Tc命令流量控制"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>&emsp;&emsp;Tc命令的全称为 Traffic Control，是 iproute2 包中控制内核流量的工具。tc 在内核网络协议栈的 XDP 之后、netfilter 之前读取数据包，对其进行控制、分发和丢弃等操作。tc 既可以处理传出的数据包，也可以处理传入的数据包，但是对传入的数据包处理较少。</p>
+<p>&emsp;&emsp;本文主要参考《<a target="_blank" rel="noopener" href="https://tldp.org/HOWTO/Adv-Routing-HOWTO/index.html">Linux Advanced Routing &amp; Traffic Control HOWTO</a>》以及《<a target="_blank" rel="noopener" href="http://linux-ip.net/articles/Traffic-Control-HOWTO/">Traffic Control HOWTO</a>》。</p>
+<h1 id="术语"><a href="#术语" class="headerlink" title="术语"></a>术语</h1><h2 id="流量控制方式"><a href="#流量控制方式" class="headerlink" title="流量控制方式"></a>流量控制方式</h2><p>流量控制包括以下几种方式：</p>
+<ul>
+<li>限制（shaping）：也叫整形，用于处理向外的流量。在包发送出去之前进行延迟处理，以达到预设的最大发送速率的过程。整形是在 egress 做的（前面提到了，ingress 方向的不叫 shaping，叫 policing）。 不严格地说，丢弃包来降低流量的过程有时也称为整形。</li>
+<li>调度（scheduling）：通过调度数据包传输，可以在带宽分为内，按照优先级分配带宽，也只适用于向外的流量。</li>
+<li>策略（policing）：延迟或丢弃（delaying or dropping）包来达到预设带宽的过程。 在 Linux 上， policing 只能对包进行丢弃，不能延迟 —— 没有“入向队列”（”ingress queue”）。</li>
+<li>丢弃（dropping）：如果流量超过设定的带宽，就丢弃数据包，不管向内还是向外。</li>
+</ul>
+<h2 id="流量控制对象"><a href="#流量控制对象" class="headerlink" title="流量控制对象"></a>流量控制对象</h2><p>&emsp;&emsp;流量的处理由三种对象控制，它们是：qdisc（排队规则）、class（类别）和filter（过滤器）。</p>
+<ul>
+<li><p><strong>qdisc（排列规则）</strong></p>
+<p>QDisc（排队规则）是 queueing discipline 的简写，它是理解流量控制（traffic control）的基础。无论何时，内核如果需要通过某个网络接口发送数据包，它都需要按照为这个接口配置的qdisc(排队规则)把数据包加入队列。然后，内核会尽可能多地从 QDisc 里面取出数据包，把它们交给网络适配器驱动模块。最简单的 QDisc 是 pfifo 它不对进入的数据包做任何的处理，数据包采用先入先出的方式通过队列。不过，它会保存网络接口一时无法处理的数据包。</p>
+</li>
+</ul>
+<p>&emsp;&emsp;QDisc的类别分为classless qdisc（不可分类Qdisc）和classful qdisc（分类Qdisc）两种，后续会对两种类别的分类器详细说明。</p>
+<ul>
+<li><p><strong>class（类别）</strong></p>
+<p>某些 QDisc（排队规则）可以包含一些类别，不同的类别中可以包含更深入的 QDisc，通过这些细分的 QDisc 还可以为进入的队列的数据包排队。通过设置各种类别数据包的离队次序，QDisc 可以为设置网络数据流量的优先级。</p>
+</li>
+<li><p><strong>fIlter（过滤）</strong></p>
+<p>Filter（过滤器）用于为数据包分类，决定它们按照何种 QDisc 进入队列。无论何时数据包进入一个划分子类的类别中，都需要进行分类。分类的方法可以有多种，使用 filter（过滤器）就是其中之一。使用filter(过滤器)分类时，内核会调用附属于这个类（class）的所有过滤器，直到返回一个判决。如果没有判决返回，就作进一步的处理，而处理方式和 QDisc 有关。需要注意的是，filter（过滤器）是在 QDisc 内部，它们不能作为主体。</p>
+</li>
+</ul>
+<h2 id="其他相关术语"><a href="#其他相关术语" class="headerlink" title="其他相关术语"></a>其他相关术语</h2><ul>
+<li><p><strong>Work-Conserving qdisc（随到随发 qdisc）</strong></p>
+<p>work-conserving qdisc 只要有包可发送就立即发送。换句话说，只要网卡处于可发送状态（对于 egress qdisc 来说），它永远不会延迟包的发送。</p>
+</li>
+<li><p><strong>non-Work-Conserving qdisc（非随到随发 qdisc）</strong></p>
+<p>某些 qdisc，例如 TBF，可能会延迟一段时间再将一个包发送出去，以达到期望的带宽 。这意味着它们有时即使有能力发送，也不会发送。</p>
+</li>
+</ul>
+<h1 id="操作原理"><a href="#操作原理" class="headerlink" title="操作原理"></a>操作原理</h1><p>&emsp;&emsp;类（class）组成一个树，每个类都只有一个父亲，某些Qdisc （例如：CBQ 和 HTB）允许在运行时动态的添加类，而其他的 QDisc （例如：PRIO）不允许动态建立类。</p>
+<p>&emsp;&emsp;允许动态添加类的 Qdisc 可以有零个或者多个子类，由他们为数据包排队。此外每个类都有一个叶子 QDisc，默认情况下，这个叶子 Qdisc 使用 pfifo 的方式排队，我们也可以使用其他类型的QDisc代替这个默认的 Qdisc。而且，这个叶子 Qdisc 又可以分类，不管每个子类只能有一个叶子 QDisc。当一个数据包进入分类 QDisc，它会被归入某个子类。我们可以使用一下三种方式为数据包归类，不过不是所有的 QDisc 都可以使用这三种方式：</p>
+<ol>
+<li>tc过滤器（TC Filter）：如果过滤器附属于一个类，相关的指令就会对它们进行查询。过滤器能够匹配数据包头所有的域，也可以匹配由 ipchains 或者 iptables 做的标记。</li>
+<li>服务类型（Type of Service）：某些QDisc有基于服务类型（Type of Service,ToS）的内置的规则为数据包分类。</li>
+<li>数据包优先级（skb-&gt;priority）：用户空间的应用程序可以使用 SO_PRIORITY 选项在 skb-&gt;priority 域设置一个类的ID。</li>
+</ol>
+<p>&emsp;&emsp;树的每个节点都可以有自己的过滤器，但是高层的过滤器也可以直接用于其子类。如果数据包没有被成功归类，就会被排到这个类的叶子 QDisc 的队中。相关细节在各个QDisc的手册页中。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">              Userspace programs</span><br><span class="line">                   ^</span><br><span class="line">                   |</span><br><span class="line">   +---------------+-----------------------------------------+</span><br><span class="line">   |               Y                                         |</span><br><span class="line">   |    -------&gt; IP Stack                                    |</span><br><span class="line">   |   |              |                                      |</span><br><span class="line">   |   |              Y                                      |</span><br><span class="line">   |   |              Y                                      |</span><br><span class="line">   |   ^              |                                      |</span><br><span class="line">   |   |  / ----------&gt; Forwarding -&gt;                        |</span><br><span class="line">   |   ^ /                           |                       |</span><br><span class="line">   |   |/                            Y                       |</span><br><span class="line">   |   |                             |                       |</span><br><span class="line">   |   ^                             Y          /-qdisc1-\   |</span><br><span class="line">   |   |                            Egress     /--qdisc2--\  |</span><br><span class="line">---&gt;-&gt;Ingress                       Classifier ---qdisc3---- | -&gt;</span><br><span class="line">   |   Qdisc                                   \__qdisc4__/  |</span><br><span class="line">   |                                            \-qdiscN_/   |</span><br><span class="line">   |                                                         |</span><br><span class="line">   +----------------------------------------------------------+</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;上图表示 Linux 内核。最左侧的箭头表示流量从外部，然后进入 Ingress Qdisc，这里会对包进行过滤（apply Filters），根据结果决定是否要丢弃这个包。这个过程称为 “Policing”。这个过程发生在内核处理的很早阶段，在穿过大部 分内核基础设施之前。因此在这里丢弃包是很高效的，不会消耗大量 CPU。</p>
+<p>&emsp;&emsp;如果判断允许这个包通过，那它的目的端可能是本机上的应用（local application），这种情况下它会进入内核 IP 协议栈进行进一步处理，最后交给相应的用户态程序。另外，这个包的目的地也可能是其他主机上的应用，这种情况下就需要通过这台机器 Egress Classifier 再发送出去。主机程序也可能会发送数据，这种情况下也会通过 Egress Classifier 发送。</p>
+<p>&emsp;&emsp;Egress Classifier 中会用到很多 qdisc。默认情况下只有一个：pfifo_fast qdisc ，它永远会接收包，这称为 “入队”（”enqueueing”）。</p>
+<p>&emsp;&emsp;此时包位于 qdisc 中了，等待内核召唤，然后通过网络接口（network interface）发送出去。这称为 “出队”（”dequeueing”）。</p>
+<p>&emsp;&emsp;以上画的是单网卡的情况。在多网卡的情况下，每个网卡都有自己的 ingress 和 egress hooks。</p>
+<h1 id="队列和队列规则"><a href="#队列和队列规则" class="headerlink" title="队列和队列规则"></a>队列和队列规则</h1><p>&emsp;&emsp;通过对包的排队（queuing），我们可以决定数据的发送方式。但是我们只能对发送（transmit）的数据进行限制（也叫流量整形）。</p>
+<p>&emsp;&emsp;互联网的工作机制决定了接收端无法直接控制发送端的行为。这就像别人往你家寄邮件一样，除非能联系到所有人（告诉他们未经允许不要寄信给你），否则无法控制别人寄多少东西过来。</p>
+<p>&emsp;&emsp;但是与实际生活不同的是，互联网大多数消息都是基于 TCP/IP 协议，TCP/IP 虽然无法提前知道两台主机之间的网络带宽，因此它会以越来越快的速度发送数据(慢启动)，直到开始出现丢包，此时发送端知道对端没用可用空间储存这些发送的包了，就开始降低发送速度，当然，TCP/IP的实际工作过程比这个更智能一点。这就好比你留下一半信件中邮箱中不取，期望别人知道这个状况后停止寄信。但是不幸的是，这种方式只对互联网管用。</p>
+<p>&emsp;&emsp;如果内网有一台路由器，你希望限制某几台主机的下载速度，那你应该找到发送数据到 这些主机的路由器内部接口（inner interface of your router），然后在这些 路由器内部接口上做整流（traffic shaping，流量整形）。</p>
+<p>&emsp;&emsp;此外，还要确保链路瓶颈（bottleneck of the link）也在你的控制范围内。例如，如果网 卡是 100Mbps，但路由器的链路带宽是 256Kbps，那首先应该确保不要发送过多数据给路由 器，因为它可能扛不住。否则，链路控制和带宽整形的决定权就不在主 机侧而到路由器侧了。要达到限速目的，我们需要对 “发送队列” 有完全的把控（”own the queue”），这里的 “发送队列” 也就是整条链路上最慢的一段（slowest link in the chain）。幸运的是，大多数情况下这个条件都是能满足的。</p>
+<h2 id="无类队列规则（Classless-Qdisc）"><a href="#无类队列规则（Classless-Qdisc）" class="headerlink" title="无类队列规则（Classless Qdisc）"></a>无类队列规则（Classless Qdisc）</h2><p>&emsp;&emsp;利用队列规则，我们可以决定数据被发送的方式。无类队列能够接收数据和重新编排、延迟或丢弃数据包。这可以用作对于整个网卡的流量进行无差别整形（包括重新调度，增加延时和丢弃），而不细分各种情况。在我们进一步学习分类的队列规则之前，理解这部分是必不可少的！</p>
+<p>&emsp;&emsp;最广泛应用的规则是 pfifo_fast 队列规则，这也是很多系统上的默认排队规则。还有其他队列规则，后面会有所介绍。每种队列都有它们各自的优缺点。</p>
+<h3 id="pfifo-fast"><a href="#pfifo-fast" class="headerlink" title="pfifo_fast"></a>pfifo_fast</h3><p>&emsp;&emsp;如名字所言，这是一种先入先出队列（First In，First Out），因此对所有的包都一视同仁。pfifo_fas t有三个 band，编号为0、1、2（可以理解为3个队列）：</p>
+<ul>
+<li>每个 band 上分别执行 FIFO 规则。</li>
+<li>如果 band 0 有数据，就不会处理 band1；同理，band 1有数据就不会处理 band 2。</li>
+<li>内核会检查数据包的 TOS 字段，将 “最小延迟” 的包放在 band 0。</li>
+</ul>
+<p>&emsp;&emsp;后面介绍的 prio qdisc 和 pfifo_fast qdisc 用法类似，不要混淆了，前者是 classful qdisc。虽然二者行为类似，但是 pfifo_fast 是无类别的（从用户配置的角度），这也意味着无法通过tc 命向 pfifo_fast 内添加另一个 qdisc。</p>
+<p><img src="../../statics/img/post/tc/pfifo_fast-qdisc.webp" alt="pfifo_fast qdisc"></p>
+<p>参数用法</p>
+<p>pfifo_fast qdisc 的配置默认是写死的，无法更改：</p>
+<ul>
+<li><p><strong>priomap</strong></p>
+<p>该参数决定了如何将内核设置的 packet priority 映射到 band，priority 位于包 TOS 字段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">   0     1     2     3     4     5     6     7</span><br><span class="line">+-----+-----+-----+-----+-----+-----+-----+-----+</span><br><span class="line">|                 |                       |     |</span><br><span class="line">|   PRECEDENCE    |          TOS          | MBZ |</span><br><span class="line">|                 |                       |     |</span><br><span class="line">+-----+-----+-----+-----+-----+-----+-----+-----+</span><br></pre></td></tr></table></figure>
+<p>TOS字段占用4个比特，各个比特含义如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Binary Decimcal  Meaning</span><br><span class="line">-----------------------------------------</span><br><span class="line">1000   8         Minimize delay (md)</span><br><span class="line">0100   4         Maximize throughput (mt)</span><br><span class="line">0010   2         Maximize reliability (mr)</span><br><span class="line">0001   1         Minimize monetary cost (mmc)</span><br><span class="line">0000   0         Normal Service</span><br></pre></td></tr></table></figure>
+<p><code>tcpdump -vv</code>会打印包的 TOS 字段，其中 TOS 对应的值如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">TOS     Bits  Means                    Linux Priority    Band</span><br><span class="line">------------------------------------------------------------</span><br><span class="line">0x0     0     Normal Service           0 Best Effort     1</span><br><span class="line">0x2     1     Minimize Monetary Cost   1 Filler          2</span><br><span class="line">0x4     2     Maximize Reliability     0 Best Effort     1</span><br><span class="line">0x6     3     mmc+mr                   0 Best Effort     1</span><br><span class="line">0x8     4     Maximize Throughput      2 Bulk            2</span><br><span class="line">0xa     5     mmc+mt                   2 Bulk            2</span><br><span class="line">0xc     6     mr+mt                    2 Bulk            2</span><br><span class="line">0xe     7     mmc+mr+mt                2 Bulk            2</span><br><span class="line">0x10    8     Minimize Delay           6 Interactive     0</span><br><span class="line">0x12    9     mmc+md                   6 Interactive     0</span><br><span class="line">0x14    10    mr+md                    6 Interactive     0</span><br><span class="line">0x16    11    mmc+mr+md                6 Interactive     0</span><br><span class="line">0x18    12    mt+md                    4 Int. Bulk       1</span><br><span class="line">0x1a    13    mmc+mt+md                4 Int. Bulk       1</span><br><span class="line">0x1c    14    mr+mt+md                 4 Int. Bulk       1</span><br><span class="line">0x1e    15    mmc+mr+mt+md             4 Int. Bulk       1</span><br></pre></td></tr></table></figure>
+<p>第二列是对应十进制表示，第三列是对应的含义。例如，15表示这个包期望<code>Minimize Monetary Cost</code> + <code>Maximize Reliability</code> + <code>Maximize Reliability</code> + <code>Maximize Throughput</code>。这样的包可以称为荷兰包（a ‘Dutch Packet’。荷兰人比较 节俭/抠门，译注）。第四列是对应到 Linux 内核的优先级；最后一列是映射到的 band， 从命令行输出看，形式为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1, 2, 2, 2, 1, 2, 0, 0 , 1, 1, 1, 1, 1, 1, 1, 1</span><br></pre></td></tr></table></figure>
+<p>例如，priority 4 会映射到 band 1。priomap 还能列出 <code>priority &gt; 7</code> 的那些 不是由 TOS 映射、而是由其他方式设置的优先级。例如，下表列出了应 用（application）是如何设置它们的 TOS 字段的，来自 RFC 1349（更多信息可阅 读全文）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">TELNET                   1000           (minimize delay)</span><br><span class="line">FTP     Control          1000           (minimize delay)</span><br><span class="line">        Data             0100           (maximize throughput)</span><br><span class="line"></span><br><span class="line">TFTP                     1000           (minimize delay)</span><br><span class="line"></span><br><span class="line">SMTP    Command phase    1000           (minimize delay)</span><br><span class="line">        DATA phase       0100           (maximize throughput)</span><br><span class="line"></span><br><span class="line">DNS     UDP Query        1000           (minimize delay)</span><br><span class="line">        TCP Query        0000</span><br><span class="line">        Zone Transfer    0100           (maximize throughput)</span><br><span class="line"></span><br><span class="line">NNTP                     0001           (minimize monetary cost)</span><br><span class="line"></span><br><span class="line">ICMP    Errors           0000</span><br><span class="line">        Requests         0000 (mostly)</span><br><span class="line">        Responses        &lt;same as request&gt; (mostly)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>txqueuelen</strong></p>
+<p>发送队列长度，是一个网络接口（interface）参数，可以用 ifconfig 命令设置。例 如，<code>ifconfig eth0 txqueuelen 10</code>。</p>
+<p><code>tc</code> 命令无法修改这个值。</p>
+</li>
+</ul>
+<h5 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc show dev ens160  <span class="comment"># 注意 parent :&lt;N&gt; 是十六进制</span></span></span><br><span class="line">qdisc mq 0: root</span><br><span class="line">qdisc pfifo_fast 0: parent :1 bands 3 priomap  1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1</span><br><span class="line">qdisc pfifo_fast 0: parent :2 bands 3 priomap  1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1</span><br><span class="line">qdisc pfifo_fast 0: parent :3 bands 3 priomap  1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1</span><br><span class="line">qdisc pfifo_fast 0: parent :4 bands 3 priomap  1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1</span><br><span class="line">qdisc pfifo_fast 0: parent :5 bands 3 priomap  1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1</span><br><span class="line">qdisc pfifo_fast 0: parent :6 bands 3 priomap  1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1</span><br><span class="line">qdisc pfifo_fast 0: parent :7 bands 3 priomap  1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1</span><br><span class="line">qdisc pfifo_fast 0: parent :8 bands 3 priomap  1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1</span><br></pre></td></tr></table></figure>
+<h3 id="TBF"><a href="#TBF" class="headerlink" title="TBF"></a>TBF</h3><p>&emsp;&emsp;TBF是一个简单的qdisc，对于没有超过预设速率的流量直接透传，但也能容忍超过预设速率的短时抖动（short bursts in excess of this rate）。TBF非常简洁，对于网络和处理器都很友好，如果只是想实现接口限速，那么 TBF 是第一选择。</p>
+<p><img src="../../statics/img/post/tc/tbf-qdisc.webp" alt="TBF qdisc"></p>
+<p>TBF包括了以下几个部分：</p>
+<ul>
+<li>A buffer（bucket）：bucket 最重要的参数是它的大小，即能容纳的 token 数量。</li>
+<li>Token：token 会以特定的速率（specific rate）填充 bucket 缓冲区。</li>
+</ul>
+<p>当一个包到来时，会从 bucket 中拿到一个 token，然后收集这个包的信息，最后从这个 bucket 中删除 token，这个算法和 token flow、data flow 结合起来，会产生三种可能的场景：</p>
+<ol>
+<li>数据速率 == token 速率：每个包都能找到一个对应的 token，如何直接从队列出去，没有延时。</li>
+<li>数据速率 &lt; token 速率：正常来的包都能及时出去，然后删除一个 token。由于token速率大于数据速率，会产生 bucket 积压，极端情况下会将 bucket 占满。如果数据速率突然高于 token 速率，就可以消耗这些积压的 token。因此积压的 token 有一个额外的好处：能容忍短时数据速率抖动（burst）。</li>
+<li>数据速率 &gt; token 速率：token 会很快的用完，如何TBF会关闭（throttle）一会。这种情况称为 overlimit（超过限制）。如果包还是源源不断到来，就会产生丢包。</li>
+</ol>
+<p>第三种情况非常重要，因为它使我们能够对数据可用带宽进行整形（administratively shape the bandwidth）。</p>
+<p>积压的 token 使得超过限制的短时抖动（burst）数据仍然能够被发送出去，不会丢包，但持续的过载（overload）会导致数据不断被 delay，然后被丢弃。</p>
+<blockquote>
+<p>注意：在实际实现中，token是基于字节数，而不是包书。</p>
+</blockquote>
+<h4 id="参数用法"><a href="#参数用法" class="headerlink" title="参数用法"></a>参数用法</h4><p>虽然通常情况下并不需要修改TBF配置参数，但我们还是可以看一下有哪些。首先永远可用的（always available）参数：</p>
+<ul>
+<li><p><strong>limit or latency</strong></p>
+<p>limit 是因等待可用 token 而被放入队列的字节数。latency 是每个包在 TBF 中停留的最长时间。随后会基于 latency、bucket size、rate 和 peakrate（如果设置了）来计算 limit。这 2 个参数互斥，只能设置其一。 </p>
+</li>
+<li><p><strong>burst/buffer/maxburst</strong></p>
+<p>bucket 的大小，单位是字节。这是积累可用token所支持的最大字节数（ maximum amount of bytes that tokens can be available for instantaneously）。总体来说，越大的整流速率（shaping rates）需要越大的缓冲区。要在 Intel 网卡 上实现 10Mbps 整流，你至少需要 <code>10KB</code> 缓冲区。如果缓冲区太小，可能会丢包，因为token到来太快而导致无法放入bucket中。</p>
+</li>
+<li><p><strong>mpu</strong></p>
+<p>“零长度” 的包占用的不是零带宽（A zero-sized packet does not use zero bandwidth）。对于以太网，任何一个包的字节都不会小于64。Minimum Packet Unit（最小包单元）决定了一个包使用的最小token量（the minimal token usage for a packet）。</p>
+</li>
+<li><p><strong>rate</strong></p>
+<p>速度旋钮（speedknob）。</p>
+</li>
+</ul>
+<p>如果当前 bucket 中有 token，并且没有禁止 bucket 的 token 删除动作，那默认情况下 ，它会全速删除。如果不期望这种行为，那可以设置下面几个参数：</p>
+<ul>
+<li><p><strong>peakrate</strong></p>
+<p>如前所说，默认情况下，包到来之后有 token 就会被立即发送，这可能不是你期望的，尤其当 bucket 很大的时候。</p>
+<p>peakrate 可以指定 bucket 发送速率的最快速度。通常来说，这需要做的就算：放行一个包 -&gt; 等待恰当的时间 -&gt; 放行下一个包。通过计算等待时长，最终实现 peakrate 效果。</p>
+<p>但实际中，由于 Unix 默认的 10ms 定时器限制，如果平均每个包 10K bit，我们只能做到 1Mbps peakrate（<code>10Kb/10ms = 1000Kbps = 1Mbps</code>）。</p>
+</li>
+<li><p><strong>mtu/minburst</strong></p>
+<p>1Mbit/s的 peakrate 通常不是很有用，因为实际带宽远大于此。实现更高peakrate的一种方式是：每个 timer tick（时间刻度）发送多个包，在效果上就好像我们创建了第二个bucket！这第二个bucket默认只有一个包（default to a single packet），完全算不上一个bucket。计算最大可能的 peakrate 时，用MTU乘以100（更准确地说，乘以 HZ 数，例如 Intel 上是 100，Alpha 上是 1024）。</p>
+</li>
+</ul>
+<h4 id="使用示例-1"><a href="#使用示例-1" class="headerlink" title="使用示例"></a>使用示例</h4><p>&emsp;&emsp;一个简单但是非常有用的配置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev ppp0 root tbf rate 220kbit latecy 50ms burst 1540</span></span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;为什么说这个配置很有用呢？如果有一个queue很大的网络设备，例如 DSL modem（DSL调制解调器）或者 cable modem（电缆调制解调器），而且用一个快速设备（例如以太网接口）连接这个网络设备，那你会发现大文件上传会严重影响实时交互。这是因为上传的数据会被缓存到 modem 的 queue 中，而且缓存的数据量很大（以提升吞吐）。但这不是期望的，你希望的是 queue 不要太大，这样能保证交换式数据的实时性，因此能上传数据时做其他事情。</p>
+<p>&emsp;&emsp;上面的配置将发送速率减低到了modem不会对数据进行配对缓存（queuing）的水平——此时 queue 前移到了 Linux 中，而我们可以将它控制在一个合理的范围内。</p>
+<p>&emsp;&emsp;这里的 220kbit 是上行链路的真实带宽乘以一个系数，如果你的 modem 足够快，可以将 burst 调大一些。</p>
+<h3 id="SFQ"><a href="#SFQ" class="headerlink" title="SFQ"></a>SFQ</h3><p>&emsp;&emsp;随机公平排队（SFQ）是公平排队算法族的一个简单实现。相比其他算法，SFQ 精准性要差 一些，但它所需的计算量也更少，而结果几乎是完全公平的（almost perfectly fair）。</p>
+<p><img src="../../statics/img/post/tc/sfq-qdisc.webp" alt="sfq qdisc"></p>
+<p>&emsp;&emsp;SFQ中的核心是conversion（会话）或 flow（流），大部分情况下都对应一个 TCP session 或 UDP stream。每个 conversion 对应一个 FIFO queue，然后将流量分到不 同 queue。发送数据时，按照 round robin 方式，每个 session 轮流发送。</p>
+<p>&emsp;&emsp;这种机制会产生非常公平的结果，不会因为单个 conversion 太大而把其他 conversion 的带宽都挤占掉。SFQ 被称为“随机的”（stochastic）是因为它其实并没有为每个 session 分配一个 queue，而是用算法将流量哈希到了一组有限的 queue。</p>
+<p>&emsp;&emsp;但这里会出现另一个问题：多个 session 会可能会哈希到同一个 bucket（哈希槽）， 进而导致每个 session 的 quota 变小，达不到预期的整流带宽（或速度）。为避免这个 问题过于明显，SFQ 会不断变换它使用的哈希算法，最终任何两个会话冲突的持续时间 都不会很长，只会有几秒钟。</p>
+<p>&emsp;&emsp;SFQ 只有在实际出向带宽已经非常饱和的情况下才有效，这一点非常重要！否则， Linux 机器上就不存在 queue，因此也就没用效果。稍后会看到如何将 SFQ 与其他 qdisc 相结合来实现一般情况下的公平排队。</p>
+<p>&emsp;&emsp;说的更明确一点：没用配套的整流配置的话，单纯在（连接 modem 的）以太网接口上配置 SFQ 是毫无意义的。</p>
+<h4 id="参数用法-1"><a href="#参数用法-1" class="headerlink" title="参数用法"></a>参数用法</h4><p>SFQ 大部分情况下默认参数就够了：</p>
+<ul>
+<li><p><strong>perturb</strong></p>
+<p>每隔多少秒就重新配置哈希算法。如果这个参数没设，哈希算法就永远不会重新配置。 建议显式设置这个参数，不要为空。10s 可能是个不错的选择。</p>
+</li>
+<li><p><strong>quantum</strong></p>
+<p>在轮到下一个 queue 发送之前，当前 queue 允许出队 （dequeue）的最大字节数。默认是一个 MTU，不建议设置为比 MTU 小的值。</p>
+</li>
+<li><p><strong>limit</strong></p>
+<p>SFQ 能缓存的最大包数（超过这个阈值将导致丢包）。</p>
+</li>
+</ul>
+<h4 id="使用示例-2"><a href="#使用示例-2" class="headerlink" title="使用示例"></a>使用示例</h4><p>&emsp;&emsp;如果你有一个带宽已经饱和的网络设备，例如一个电话调制解调器（phone modem），那下 面的配置有助于提高公平性：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev ppp0 root sfq perturb 10</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc -s -d qdisc <span class="built_in">ls</span></span></span><br><span class="line">qdisc sfq 800c: dev ppp0 quantum 1514b limit 128p flows 128/1024 perturb 10sec</span><br><span class="line"> Sent 4812 bytes 62 pkts (dropped 0, overlimits 0)</span><br></pre></td></tr></table></figure>
+<p>这里对一些值解释一下：</p>
+<ul>
+<li><code>800c</code>：自动分配的 handle number （句柄编号）。</li>
+<li><code>limit 128p</code>：最大缓存 128 个包。</li>
+<li><code>flows 128/1024</code>：这个 sfq 有1024 个哈希槽（hash buckets），其中 128 个当前有数据待发送。</li>
+<li><code>perturb 10sec</code>：每隔10秒换一次哈希算法。</li>
+</ul>
+<h2 id="分类队列规则（Classful-Qdisc）"><a href="#分类队列规则（Classful-Qdisc）" class="headerlink" title="分类队列规则（Classful Qdisc）"></a>分类队列规则（Classful Qdisc）</h2><p>&emsp;&emsp;如果想对不同类型的流量做不同处理，那 classful qdisc 非常有用。其中一种是 CBQ（ Class Based Queueing，基于类别的排队），由于这种类型的 qdisc 使用太广泛了，导致大家将广义上基于类别的排队等同于 CBQ（identify queueing with classes solely with CBQ），但实际并非如此。</p>
+<h3 id="相关解释"><a href="#相关解释" class="headerlink" title="相关解释"></a>相关解释</h3><h4 id="Classful-qdisc-amp-class-中的-flow"><a href="#Classful-qdisc-amp-class-中的-flow" class="headerlink" title="Classful qdisc &amp; class 中的 flow"></a>Classful qdisc &amp; class 中的 flow</h4><p>&emsp;&emsp;当流量进入一个 classful qdisc 时，该 qdisc 需要将其发送到内部的某个 class，即需要对这个包进行分类，这个判断的过程实际上是查询所谓的“过滤器”（ ‘filters’）。过滤器是在 qdisc 中被调用的，而不是其他地方，理解一点非常重要！</p>
+<p>&emsp;&emsp;过滤器返回一个判决结果给 qdisc，qdisc 据此将包 enqueue 到合适的 class。 每个 subclass 可能会进一步执行其他 filters，以判断是否需要进一步处理。如果没有其他过滤器，这个 class 将把包 enqueue 到它自带的 qdisc。</p>
+<p>&emsp;&emsp;除了能包含其他 qdisc，大部分 classful qdisc 还会执行流量整形。这对包调度（packet scheduling，例如，基于 SFQ）和速率控制（rate control）都非常有用。 当高速设备（例如，以太网）连接到一个低速设备（例如一个调制解调器）时，会用到这个功能。</p>
+<p>&emsp;&emsp;如果只运行 SFQ，那接下来不会发生什么事情，因为包会无延迟地进入和离开路由 器：网卡的发送速度要远大于真实的链路速度。瓶颈不在主机中，就无法用“队列”（queue ）来调度这些流量。</p>
+<h4 id="roots-handles-siblings-and-parents"><a href="#roots-handles-siblings-and-parents" class="headerlink" title="roots, handles, siblings and parents"></a>roots, handles, siblings and parents</h4><p>&emsp;&emsp;每个接口都有一个 egress “root qdisc”。默认情况下，这个 root qdisc 就是前面提到的 classless pfifo_fast qdisc 。每个 qdisc 和 class 都会分配一个相应的handle（句柄），可以指定 handle 对 qdisc进行配置。</p>
+<p>&emsp;&emsp;每个接口肯还会有一个 ingress qdisc，用来对入向流量执行策略（which polices traffic coming in）。</p>
+<ul>
+<li><p><strong>关于 handle</strong></p>
+<ul>
+<li>每个 handle 由 2 部分组成，<code>&lt;major&gt;:&lt;minor&gt;</code>。</li>
+<li>按照惯例，root qdisc 的 hande 为 <code>1:</code>，这是 <code>1:0</code>的简写。</li>
+<li>每个 qdisc 的minor number永远是 <code>0</code>。</li>
+</ul>
+</li>
+<li><p><strong>关于class</strong></p>
+<ul>
+<li>每个 class 的 major number 必须与其 parent 一致。</li>
+<li>major number 在 一个 egress 或 ingress 内必须是唯一的。</li>
+<li>minor number 在一个 qdisc 或者 class 内必须是唯一的。</li>
+</ul>
+</li>
+</ul>
+<h4 id="如何用过滤器对流量进行分类"><a href="#如何用过滤器对流量进行分类" class="headerlink" title="如何用过滤器对流量进行分类"></a>如何用过滤器对流量进行分类</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">          1:   root qdisc</span><br><span class="line">           |</span><br><span class="line">          1:1    child class</span><br><span class="line">        /  |  \</span><br><span class="line">       /   |   \</span><br><span class="line">      /    |    \</span><br><span class="line">      /    |    \</span><br><span class="line">   1:10  1:11  1:12   child classes</span><br><span class="line">    |      |     |</span><br><span class="line">    |     11:    |    leaf class</span><br><span class="line">    |            |</span><br><span class="line">    10:         12:   qdisc</span><br><span class="line">   /   \       /   \</span><br><span class="line">10:1  10:2   12:1  12:2   leaf classes</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;上图是一个典型的 handle 层级。在这个 handle 层级中，数据包只会通过 root qdisc 入队或出队（get enqueued and dequeued），这也是内核唯一与之交互的部分（ the only thing the kernel talks to）。一个包可能被链式的分类成<code>1: -&gt; 1:1 -&gt; 1:12 -&gt; 12: -&gt; 12:2</code>。最后到达 attach 到 <code>class 12:2</code>的 qdisc 的队列中。</p>
+<p>&emsp;&emsp;在这个例子中，树的每个“节点”（ node）上都 attach 了一个 filter，每个 filter 都会给出一个判断结果，根据判断结果 选择一个合适的分支将包发送过去。这是常规的流程。但是<code>1: -&gt; 12:2</code>这种流程也是有可能的。这种情况下，attach 到 root qdisc 的 filter 决定直接将包发给 <code>12:2</code>。</p>
+<h4 id="包是如何从-qdisc-出队（dequeue）到硬件的"><a href="#包是如何从-qdisc-出队（dequeue）到硬件的" class="headerlink" title="包是如何从 qdisc 出队（dequeue）到硬件的"></a>包是如何从 qdisc 出队（dequeue）到硬件的</h4><p>&emsp;&emsp;当内核决定从 qdisc dequeue packet 交给接口（interface）发送时，它会：</p>
+<ol>
+<li>向 root qdisc <code>1:</code> 发送一个 dequeue request。</li>
+<li><code>1:</code> 会将这个请求转发给 <code>1:1</code>，后者会进一步向下传递，转发给 <code>10:</code>、<code>11:</code>、<code>12:</code>。</li>
+<li>每个 qdisc 会查询它们的 siblings，并尝试在上面执行 <code>dequeue()</code> 方法。</li>
+</ol>
+<p>&emsp;&emsp;在这个例子中，内核需要遍历整棵树，因为只有 <code>12:2</code> 中有数据包。简单来说，嵌套类（nested classes）只会和它们的 parent qdiscs 通信，而永远不会直接和接口交互。内核只会调用 root qdisc 的 <code>dequeue()</code> 方法！</p>
+<p>&emsp;&emsp;那么最终结果是 classes dequeue 的速度永远不会超过它们的 parents 允许的速度。而这正是我们所期望的：这样就能在内层使用一个 SFQ 做纯调度，它不用做任何整形的工作 ；然后在外层使用一个整形 qdisc 专门负责整形。</p>
+<h3 id="PRIO"><a href="#PRIO" class="headerlink" title="PRIO"></a>PRIO</h3><p>&emsp;&emsp;PRIO QDisc不能限制带宽，因为属于不同类别的数据包是顺序离队的。使用PRIO QDisc可以很容易对流量进行优先级管理，只有属于高优先级类别的数据包全部发送完毕，才会发送属于低优先级类别的数据包。为了方便管理，需要使用iptables或者ipchains处理数据包的服务类型（Type Of Service,ToS）。PRIO qdisc 实际上不会整形行，只会根据设置的过滤器对流量分类。</p>
+<p><img src="../../statics/img/post/tc/prio-qdisc-1.webp" alt="prio qdisc"></p>
+<p>&emsp;&emsp;可以将 PRIO qdisc 理解为 pfifo_fast qdisc 的升级版，它也有多个 band，但 每个 band 都是一个独立的 class，而不是简单的 FIFO。</p>
+<p><img src="../../statics/img/post/tc/prio-qdisc-2.webp" alt="prio qdisc"></p>
+<p>&emsp;&emsp;当一个包 enqueue 到 PRIO qdisc 之后，它会根据设置的 filters 选择一个 class ，并将包送到这个 class。默认情况下会创建三个 class。每个 class 默认情况下都包含一 个纯 FIFO qdisc，没有其他内部结构，但你可以用其他类型的 qdisc 替换掉 FIFO。</p>
+<p>&emsp;&emsp;当从 PRIO qdisc 取出（dequeue）一个包时，会先尝试 <code>:1</code>。只有 lower bands/classes 没有数据包可取时，才会尝试 higher classes。</p>
+<p>&emsp;&emsp;如果想基于 tc filters 而不仅仅是 TOS flags 做流量优先级分类时，这个 qdisc 会非常有用。还可以向这三个预置的 classes 添加额外的 qdisc，毕竟 pfifo_fast 只能提供简 单的 FIFO qdisc。</p>
+<p>&emsp;&emsp;由于 PRIO 没有流量整形功能，因此针对 SFQ 的忠告也适用于这里：</p>
+<ul>
+<li>如果你的物理链路已经打满了，可以用 PRIO qdisc （对流量进行分类），或者</li>
+<li>在外层嵌套一个 classful qdisc，后者负责流量整形。</li>
+</ul>
+<p>&emsp;&emsp;用正式的术语来说，PRIO qdisc 是一个 work-conserving 调度器（随到随发）。</p>
+<h4 id="参数用法-2"><a href="#参数用法-2" class="headerlink" title="参数用法"></a>参数用法</h4><p>下面几个参数能被 <code>tc</code> 识别：</p>
+<ul>
+<li><p><strong>band</strong></p>
+<p>需要创建的 band 数量。这个每个 band 实际上都是一个 class。如果改变这个配置， 还需要同时修改 priomap 参数</p>
+</li>
+<li><p><strong>priomap</strong></p>
+<p>如果没有提供 tc filters 来指导如何对流量分类，那 PRIO qdisc 将依据 TC_PRIO 优先级来决定优先级。这里的工作方式与 pfifo_fast qdisc 是类似的， 更多细节可以参考前面的小节。</p>
+</li>
+</ul>
+<p>PRIO qdisc 里面的 band 都是 class，默认情况下名字分别为 <code>major:1</code>、<code>major:2</code>、 <code>major:3</code>， 因此如果你的 PRIO qdisc 是 <code>12:</code>，那 tc filter 送到 <code>12:1</code> 的流量就有更高的优先级。</p>
+<blockquote>
+<p><strong>注意：</strong>band 0 对应的 minor number 是 1！band 1 对应的 minor number 是 2 ，以此类推</p>
+</blockquote>
+<h4 id="使用示例-3"><a href="#使用示例-3" class="headerlink" title="使用示例"></a>使用示例</h4><p>&emsp;&emsp;我们将创建一棵如下所示的树：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">          1:   root qdisc</span><br><span class="line">         / | \</span><br><span class="line">        /  |  \</span><br><span class="line">       /   |   \</span><br><span class="line">     1:1  1:2  1:3    classes</span><br><span class="line">      |    |    |</span><br><span class="line">     10:  20:  30:    qdiscs    qdiscs</span><br><span class="line">     sfq  tbf  sfq</span><br><span class="line">band  0    1    2</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;高吞吐流量（Bulk traffic）将送到 <code>30:</code>，交互式流量（interactive traffic）将送到 <code>20:</code> 或 <code>10:</code>。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev eth0 root handle 1: prio</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev eth0 parent 1:1 handle 10: sfq</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev eth0 parent 1:2 handle 20: tbf rate 20kbit buffer 1600 <span class="built_in">limit</span> 3000</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev eth0 parent 1:3 handle 30: sfq</span></span><br></pre></td></tr></table></figure>
+<h3 id="CBQ"><a href="#CBQ" class="headerlink" title="CBQ"></a>CBQ</h3><p>&emsp;&emsp;CBQ（Class Based Queueing，基于类的排队）是复杂、最花哨、最少被理解、也可能是最难用对的 qdisc。因为 CBQ 算法经常不够精确，这是由于它与 Linux 的工作方式不是太匹配导致的。</p>
+<p>&emsp;&emsp;除了是 Classful qdisc 之外，CBQ 还是一个整流器（shaper），作为一个整流器来说，其实它工作的不是非常理想。理想的工作方式一个是这样的：如果想将一个 10Mbps 的连接整形为 1Mbps，那这条链路应该有 90% 的时间是空闲的。否则，我们就需要 throttle 来确保链路 90% 的时间是空闲的。</p>
+<p>&emsp;&emsp;但是空闲时间是很难测量的，CBQ的方式是：用硬件连续两次请求数据的时间间隔（毫秒）来推算。这可以用来近似的估计链路的空闲状态（how full or empty the link is）。</p>
+<p>&emsp;&emsp;这种测量方式是非常间接的，因此结果并不是很准确。例如，接口的物理带宽是 100Mbps，但是它永远不可能到 100Mbps，比如驱动写的太烂了。又回到之前那个问题：应该如何计算空闲时间？</p>
+<p>&emsp;&emsp;当考虑到非纯物理网络设备（not-quite-real network devices）时，例如 PPP over Ethernet 或 PPTP over TCP/IP，情况会更加糟糕。在这些场景中，有效带宽可能是由到用户空间的管道（pipe）效率决定的——这个值可能更高。</p>
+<p>&emsp;&emsp;真正测量过的人会发现，CBQ 并不是很精准，有时候甚至完全偏离了真实值。但在某些场景下，CBQ 能很好的满足需求。</p>
+<h4 id="参数详解"><a href="#参数详解" class="headerlink" title="参数详解"></a>参数详解</h4><h5 id="CBQ-整形详解"><a href="#CBQ-整形详解" class="headerlink" title="CBQ 整形详解"></a>CBQ 整形详解</h5><p>&emsp;&emsp;如前所述，CBQ 的工作原理：在发包之前等待足够长的时间，以将带宽控制到期望的阈值。为实现这个目标，它需要计算包之间的等待间隔。</p>
+<p>&emsp;&emsp;系统在运行的过程中会有一个有效空闲时间（effective idletime）：用指数加权移动平均（exponential weighted moving average，EWMA）来计算，这个算法假设包的优先级大小是指数变化的，越近的包（recent packets）优先级越高。UNIX的 <code>loadaverage</code>指标就是这个算法。</p>
+<p>&emsp;&emsp;平均空闲时间（avgidle）的定义：<code>avgidle = 有效空闲时间（EWMA） - 计算出的空闲时间</code>。</p>
+<ol>
+<li><strong>理想的未过载链路（loaded link）</strong>：<code>avgidle = 0</code>，每经过精确地计算的时间间隔，就有一个数据包到来（packets arrive exactly once calculated interval）。</li>
+<li><strong>过载链路（overload）</strong>：<code>avgidle &lt; 0</code>，如果这个值负的太大，CBQ 会关闭一会，表示超出限制了（overlimit）。</li>
+<li><strong>空闲链路（idle link）</strong>：<code>avgidle &gt; 0</code>，这个值可能非常的大，这可能导致在几个小时后，算法允许无限大的带宽（infinite bandwidths after a few hours of silence）。为了防止这种情况发生，<code>avgidle</code> 会设置一个上限（maxidle）。</li>
+</ol>
+<p>&emsp;&emsp;如果发生 overlimit，CBQ 可以在计算出的数据包之间传递的时间量内自动节流（throttle），理论上 CBQ 会严格等待计算空闲时间，才发下一个包，然后再次节流（throttle）。但是此时也要注意 minburst 参数。</p>
+<p>下面是整形（shaping）相关参数配置：</p>
+<ul>
+<li><p><strong>avpkt</strong></p>
+<p>  平均包长，单位是字节。用于计算 maxidle 时用到。</p>
+</li>
+<li><p><strong>bandwidth</strong></p>
+<p>  设备的物理带宽，计算 idle time 时会用到。</p>
+</li>
+<li><p><strong>cell</strong></p>
+<p>  包长的增长步长。设备发送不同长度的包时，耗时可能是不一样的，与包长有关。例如，有关 800Byte 和一个 806Byte的包所花的发送时间可能是一样的。默认值是 8，必须是 2 的次幂。</p>
+</li>
+<li><p><strong>maxburst</strong></p>
+<p>  计算 maxidle 时用到的，单位包数（number of packets）。当 <code>avgidle == maxidle</code>时，可以并发发送 maxburst 个包，直到 <code>avgidle == 0</code>。注意 maxidle 是无法直接设置的，只能通过这个参数间接设置。</p>
+</li>
+<li><p><strong>minburst</strong></p>
+<p>  前面提到，overlimit 情况下 CBQ 要执行节流（throttle）。理想情况下是计算空闲时间之内执行此操作，并传递 1 个数据包。然而 Unix 内核通常很难调度短于 10ms 的事件，因此最好的方式就是在更长的时间段内进行节流（throttle），然后一次性发送 minburst 个包，再休眠 minburst 倍的时间。</p>
+<p>  等待的时间称为 offtime（停止时间）。从较长的时间跨度上看，更大的 minburst 会使得整形更加的精确，但是会导致在毫秒级别有更大的波动性。</p>
+</li>
+<li><p><strong>minidle</strong></p>
+<p>  如果 <code>avgidle &lt; 0</code>，那说明 overlimits，需要等待 avgidle 足够大才能发送下一个包。为防止突然的 burst 破环链路带宽，当 avgidle 降到一个非常小的值后，会 reset 到 minidle。minidle的单位是负微妙（negative microseconds），因此 10 就表示 idle time 的下限是 <code>-10us</code>。</p>
+</li>
+<li><p><strong>mpu</strong></p>
+<p>  最小包长（Minimum packet size），需要这个参数是因为即使是零字节的包在以太网上传输都会被填充到 64 字节，因此总会有一个发送耗时。CBQ 需要这个参数来精确计算 idle time。</p>
+</li>
+<li><p><strong>rate</strong></p>
+<p>  期望离开这个 qdisc 的流量速率（rate of traffic），这就是“速度旋钮”（speed knob）！</p>
+</li>
+</ul>
+<p>&emsp;&emsp;在内部，CBQ 有很多优先级。例如在 dequeue 包时，硬件明确没有数据的 class 会被跳过。 Overlimit 的 class 会通过降低有效优先级（effective priority）的方式进行惩罚。所以这些都是很智能，也是很复杂的。</p>
+<h5 id="CBQ-Classful-行为"><a href="#CBQ-Classful-行为" class="headerlink" title="CBQ Classful 行为"></a>CBQ Classful 行为</h5><p>&emsp;&emsp;除了限制特定类型的流量，还能指定哪些 class 能从另外哪些 class 借容量（borrow capacity）或者说，借带宽（对前一种 class 来说是借入，对后一种 class 来说就是借出）。</p>
+<ul>
+<li><p><strong>isolated/sharing</strong></p>
+<p>  配置了 isolated 的 class 不会向 sibling classes 借出带宽，如果多个应用 之间在链路利用上是竞争或互斥的，彼此不想给对方带宽，那可以用这个配置。</p>
+<p>  tc 工具还有一个 sharing 配置，作用与 isolated 相反。</p>
+</li>
+<li><p><strong>bounded/borrow</strong></p>
+<p>  也可以配置 class 为 bounded，这表示它不会向其他 siblings 借用带宽。</p>
+<p>  tc 工具还支持一个 borrow 选项，作用与 biynded 相反。</p>
+</li>
+</ul>
+<p>&emsp;&emsp;一个典型场景可能是：同一个链路上有两个应用，二者都是 <code>isolated</code> + <code>bounded</code> ，这表示二者都只会限制在它们各自分配的速率内，不会互相借带宽。</p>
+<p>&emsp;&emsp;有了这样的 agency class（代理类），可能还会有其他允许交换带宽的 class。</p>
+<h5 id="CBQ其他参数"><a href="#CBQ其他参数" class="headerlink" title="CBQ其他参数"></a>CBQ其他参数</h5><p>&emsp;&emsp;classful qdisc 需要调用过滤器来判断应该把包送到哪个 class 里面。除了调用过滤器外，CBQ 还提供了其他选项：split 和 defmap。这一块比较复杂难理解，但是不是很重要。</p>
+<p>&emsp;&emsp;由于通常只是想根据服务类型（Type of Services）字段进行筛选，因此提供了这种特殊语法。每当 CBQ 需要确定分组入队的位置时，它都会检查该节点是否是“split节点”。如果是，则其中一个子 qdisc 表示希望接受具有特定配置优先级的所有数据包，这些优先级可能来自 TOS 字段或者应用程序设置的套接字选项。 </p>
+<p>&emsp;&emsp;数据包的优先级比特与 defmap 字段进行比对，看是否存在匹配。换句话说，这是一种创建快速过滤器的简便方法，它只匹配特定的优先级。如果 defmap 为 ff（十六进制），则匹配所有内容；如果为 0，则不匹配任何内容。一个配置示例可能有助于更清楚地说明问题：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev eth1 root handle 1: cbq bandwidth 10Mbit allot 1514 \</span></span><br><span class="line"><span class="language-bash">  cell 8 avpkt 1000 mpu 64</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc class add dev eth1 parent 1:0 classid 1:1 cbq bandwidth 10Mbit    \</span></span><br><span class="line"><span class="language-bash">  rate 10Mbit allot 1514 cell 8 weight 1Mbit prio 8 maxburst 20        \</span></span><br><span class="line"><span class="language-bash">  avpkt 1000</span></span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;defmap 会用到 TC_PRIO bits，后者定义如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">TC_PRIO..          Num  Corresponds to TOS</span><br><span class="line">-------------------------------------------------</span><br><span class="line">BESTEFFORT         0    Maximize Reliablity</span><br><span class="line">FILLER             1    Minimize Cost</span><br><span class="line">BULK               2    Maximize Throughput (0x8)</span><br><span class="line">INTERACTIVE_BULK   4</span><br><span class="line">INTERACTIVE        6    Minimize Delay (0x10)</span><br><span class="line">CONTROL            7</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;关于 TOS bits 如何映射到 priorities，参考 pfifo_fast 小结。现在看交互式和批量 classes：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc class add dev eth1 parent 1:1 classid 1:2 cbq bandwidth 10Mbit     \</span></span><br><span class="line"><span class="language-bash">  rate 1Mbit allot 1514 cell 8 weight 100Kbit prio 3 maxburst 20        \</span></span><br><span class="line"><span class="language-bash">  avpkt 1000 <span class="built_in">split</span> 1:0 defmap c0</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc class add dev eth1 parent 1:1 classid 1:3 cbq bandwidth 10Mbit     \</span></span><br><span class="line"><span class="language-bash">  rate 8Mbit allot 1514 cell 8 weight 800Kbit prio 7 maxburst 20        \</span></span><br><span class="line"><span class="language-bash">  avpkt 1000 <span class="built_in">split</span> 1:0 defmap 3f</span></span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;“split qdisc”是 <code>1:0</code>，表示在 <code>1:0</code>上进行判断。<code>C0</code>是<code>11000000</code>，<code>3F</code>是<code>00111111</code>，因此这2个可以匹配到所有的包。第一个 class 匹配第 6 &amp; 7 位，因此对应的是 INTERACTIVE 和 CONTROL 流量。第二个 class 匹配的是其他所有流量。节点 <code>1:0</code> 此时有一个如下的映射表：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">priority  send to</span><br><span class="line">0         1:3</span><br><span class="line">1         1:3</span><br><span class="line">2         1:3</span><br><span class="line">3         1:3</span><br><span class="line">4         1:3</span><br><span class="line">5         1:3</span><br><span class="line">6         1:2</span><br><span class="line">7         1:2</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;如果对此有进一步兴趣，还可以通过 <code>tc class change</code> 命令传递一个 “change mask” 参 数，精确地指定你期望的优先级映射关系。例如，要将 best effort 流量转到 <code>1:2</code>，执 行命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc class change dev eth1 classid 1:2 cbq defmap 01/01</span></span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;此时 1:0 处的 priority map 将变成下面这样：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">priority  send to</span><br><span class="line">0         1:2</span><br><span class="line">1         1:3</span><br><span class="line">2         1:3</span><br><span class="line">3         1:3</span><br><span class="line">4         1:3</span><br><span class="line">5         1:3</span><br><span class="line">6         1:2</span><br><span class="line">7         1:2</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>这部分《Linux Advanced Routing &amp; Traffic Control HOWTO》原作者从源码中找到，没有具体测试。</p>
+</blockquote>
+<h4 id="使用示例-4"><a href="#使用示例-4" class="headerlink" title="使用示例"></a>使用示例</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">      1:           root qdisc</span><br><span class="line">      |</span><br><span class="line">     1:1           child class</span><br><span class="line">    /   \</span><br><span class="line">   /     \</span><br><span class="line"> 1:3     1:4       leaf classes</span><br><span class="line">  |       |</span><br><span class="line"> 30:     40:       qdiscs</span><br><span class="line">(sfq)   (sfq)</span><br></pre></td></tr></table></figure>
+<p>如上所示拓扑图，这个例子有以下条件：</p>
+<ul>
+<li>Webserver 流量限制为 5Mbps。</li>
+<li>SMTP 流量限制为 3Mbps。</li>
+<li>两者流量不超过 6Mbps。</li>
+<li>物理网卡是 100Mbps。</li>
+<li>每个 Class之间可以借用带宽。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">tc qdisc add dev eth0 root handle 1: cbq bandwidth 100Mbit avpkt 1000 cell 8</span><br><span class="line">tc class add dev eth0 parent 1:0 classid 1:1 cbq bandwidth 100Mbit rate 6Mbit \</span><br><span class="line">	weight 0.6Mbit prio 8 allot 1514 cell 8 maxburst 20 avpkt 1000 bounded</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;上面 2 条命令创建了 root qdisc 和相应的 <code>1:1</code> class。这个 class 是 bounded 类型，因此总带宽不会超过 6Mbps限制。如前面所述，CBQ 需要很多速度选项（knobs，旋钮式开关）。但用到的参数前面都介绍过了。如果 HTB 来实现这个 功能，就会简单很多。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">tc class add dev eth0 parent 1:1 classid 1:3 cbq bandwidth 100Mbit rate 5Mbit \</span><br><span class="line">	weight 0.5Mbit prio 5 allot 1514 cell 8 maxburst 20 avpkt 1000</span><br><span class="line">tc class add dev eth0 parent 1:1 classid 1:4 cbq bandwidth 100Mbit rate 3Mbit \</span><br><span class="line">	weidht 0.3Mbit prio 5 allot 1514 cell 8 maxburst 20 avpkt 1000</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;上面创建了 2 个叶子节点（leaf classes）。两个 class 都没有配置 bounded 参数，但它们都连着到了 <code>1:1</code> class，后者是有限速不超 过 6Mbps 的。因此这两个 leaf class 的总带宽不会超过 6Mbps。另外需要注意， classid 中的 major number 必须要和 parent qdisc 中的 major number 一样！</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tc qdisc add dev eth0 parent 1:3 handle 30: sfq</span><br><span class="line">tc qdisc add dev eth0 parent 1:4 handle 40: sfq</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;每个 class 默认都有一个 FIFO qdisc。但我们将其替换成了 SFQ 这样每条 flow 都能被独立、平等对待了。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tc filter add dev eth0 parent 1:0 protocol ip prio 1 u32 match ip sport 80 0xffff flowid 1:3</span><br><span class="line">tc filter add dev eth0 parent 1:0 protocol ip prio 1 u32 match ip sport 25 0xffff flowid 1:4</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;这些过滤规则直接作用在 root qdisc 上，作用是将流量分类到下面正确的 qdisc。注意是先用 tc class add 命令往 qdisc 内添加 class，然后又用 tc qdisc add命令向 class 内添加 qdisc。</p>
+<p>&emsp;&emsp;如果没有匹配到以上规则，在本例中它们会进入 1:0 接受处理，而这里是没有限速的。如果 SMTP加Webserver 的总带宽超过 6Mbps，那总带宽将根据给定的权重参数分为两部分， 5/8 给 webserver，3/8 给邮件服务。也可以说，在这个配置下，webserver 流量在 任何时候至少能获得 5/8 * 6Mbps = 3.75Mbps 带宽。</p>
+<h3 id="HTB"><a href="#HTB" class="headerlink" title="HTB"></a>HTB</h3><p>&emsp;&emsp;HTB是Hierarchy Token Bucket（分级令牌桶）的缩写。通过在实践基础上的改进，它实现来一个丰富的连接共享类别结构。使用HTB可以很容易的保证每个类别的带宽，虽然它也允许特定的类可以突破带宽上限，占用别的类的带宽。</p>
+<p>&emsp;&emsp;Martin Devera (devik) 意识到 CBQ 太复杂了，并且没有针对很多典型的场景进 行优化。因此他设计了 HTB，这种层级化的方式对下面这些场景很适用：</p>
+<ul>
+<li>有一个固定总带宽，想将其分割成几个部分，分别用作不同目的</li>
+<li>每个部分的带宽是有保证的（guaranteed bandwidth）</li>
+<li>还可以指定每个部分向其他部分借带宽</li>
+</ul>
+<p><img src="../../statics/img/post/tc/htb-borrow.webp" alt="htb qdisc"></p>
+<p>&emsp;&emsp;HTB 的工作方式与 CBQ 类似，但不是借助于计算空闲时间（idle time）来实现整形。 在内部，它其实是一个 classful TBF（令牌桶过滤器）—— 这也是它叫层级令牌桶（HTB） 的原因。</p>
+<p>&emsp;&emsp;即使发现你的 HTB 配置越来越复杂，这些配置还是能比较好地扩展（scales well）。而使用 CBQ 的话，即使在简单场景下配置就很复杂了！ HTB3（HTB 的不同版本参见其官方文档）现在已经并入正式内核了（from 2.4.20-pre1 and 2.5.31 onwards）。但你可能还是要应用一个 tc 的 patch：HTB 内核和用户空间模块的主版本号必须相同，否则 tc HTB 无法正常工作。</p>
+<h4 id="参数详解-1"><a href="#参数详解-1" class="headerlink" title="参数详解"></a>参数详解</h4><p>&emsp;&emsp;HTB 的参数并不多，在它的<a target="_blank" rel="noopener" href="http://luxik.cdi.cz/~devik/qos/htb/">网站文档</a>里都已经写的很明确了。</p>
+<ul>
+<li><p><strong>default</strong></p>
+<p>  是每个 HTB qdisc 对象的可选参数，默认值为 0，它会导致任何未分类的流量以硬件速度排序，完全绕过附加到根 qdisc 上的任何 class。</p>
+</li>
+<li><p><strong>rate</strong></p>
+<p>  用于设置限制传输流量的最小期望速度。这相当于承诺信息速率（CIR）或给叶子类（leaf class）的保证带宽。</p>
+</li>
+<li><p><strong>ceil</strong></p>
+<p>  用来设置限制传输流量的最大所需速率。如果需要设置共享带宽，则需使用此参数。这个参数可以被认为相当于“可突发带宽”</p>
+</li>
+<li><p><strong>burst</strong></p>
+<p>  这是rate桶的大小。HTB将在等待更多的token到来之前解除burst字节的队列。</p>
+</li>
+<li><p><strong>cburst</strong></p>
+<p>  这是ceil桶的大小。HTB将在等待更多的cburst到来之前取消cburst字节的队列。</p>
+</li>
+<li><p><strong>quantum</strong></p>
+<p>  这是 HTB 用来控制借用带宽的关键参数。正常情况下，正确的 quantum 由HTB计算，而不是由用户指定。其默认计算 quantum = rate / r2q。quantum 必须大于 1500 小于 60000。调整此参数可以对借用带宽和整形产生巨大影响，quantum 只在 class 的流量超过了 rate 但是没有超过 ceil 时使用，它的值越小，带宽共享的效果就越好。</p>
+</li>
+<li><p><strong>r2q</strong></p>
+<p>  r2q 通常是为用户计算的，它是 HTB 的一个提示，有助于确定特定 class 的最佳 quantum。用于计算类的 quantum 值的除数，class 的 rate 除以该数字。默认值为 10。</p>
+</li>
+<li><p><strong>mtu</strong></p>
+<p>  速率映射的最大数据包大小 </p>
+</li>
+<li><p><strong>prio</strong></p>
+<p>  优先级，在循环过程中，首先尝试处理具有最低优先级字段的数据包。 </p>
+</li>
+</ul>
+<p>下面是一些使用 HTB 的建议：</p>
+<ul>
+<li><p>使用 HTB 进行整形仅在叶类中进行。</p>
+</li>
+<li><p>由于HTB 不在除叶子类（leaf class）之外的任何类中整形，因此叶类的 rate 总和不能超过父类的 ceil。理想情况下子类的 rate 总和一个和父类的 rate 匹配，从而允许父类在子类之间分配剩余的带宽（<code>ceil - rate</code>）。</p>
+<p>  使用 HTB 是这一关键概念值得重复。只有叶子类才能实际整形信息包，信息包只在叶类中延迟。内部类（一直到根类）用于定义 borrowing / lending 的发生方式</p>
+</li>
+<li><p>quantum 只有在超过 rate 但低于 ceil 时使用。</p>
+</li>
+<li><p>quantum 应该设置为 MTU 或者更高。即使 quantum 太小，HTB 至少也会在每个服务机会中释放一个数据包，在这种情况下它将无法准确的计算消耗的实际带宽。</p>
+</li>
+<li><p>父类以 quantum 的增量向子类借出令牌，因此为了获取最大粒度和最即时均匀的带宽（ maximum granularity and most instantaneously evenly distributed bandwidth），quantum 应尽可能小，同时不低于 MTU。</p>
+</li>
+<li><p>token 与 ctoken 之间的区别只有在叶子类有意义，因为非叶子类只把 token 借给子类</p>
+</li>
+<li><p>HTB borrowing 可以更准确地描述为“使用（using）”。</p>
+</li>
+</ul>
+<h4 id="使用示例-5"><a href="#使用示例-5" class="headerlink" title="使用示例"></a>使用示例</h4><p>&emsp;&emsp;下面是一个功能几乎与前面的 CBQ 示例配置一样的 HTB 配置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev eth0 root handle 1: htb default 30</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc class add dev eth0 parent 1: classid 1:1 htb rate 6mbit burst 15k</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc class add dev eth0 parent 1:1 classid 1:10 htb rate 5mbit burst 15k</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc class add dev eth0 parent 1:1 classid 1:20 htb rate 3mbit ceil 6mbit burst 15k</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc class add dev eth0 parent 1:1 classid 1:30 htb rate 1kbit ceil 6mbit burst 15k</span></span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;HTB 作者推荐在这些 class 内部使用 SFQ：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev eth0 parent 1:10 handle 10: sfq perturb 10</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev eth0 parent 1:20 handle 20: sfq perturb 10</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc qdisc add dev eth0 parent 1:30 handle 30: sfq perturb 10</span></span><br></pre></td></tr></table></figure>
+<p>&esmp;&emsp;最后，将流量导向这些 class 的过滤器（filters）：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">U32=<span class="string">&quot;&quot;</span></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc filter add dev eth0 protocol ip parent 1:0 prio 1 u32 match ip dport 80 0xffff flowid 1:10</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tc filter add dev eth0 protocol ip parent 1:0 prio 1 u32 match ip sport 25 0xffff flowid 1:20</span></span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;这就是 HTB 的配置了 —— 没有看上去不知道是什么意思的数字（unsightly unexplained numbers），没有查文档都查不到的参数。 HTB 显然看上去非常棒 —— 如果 <code>10:</code> 和 <code>20:</code> 都获得了保证的带宽（guaranteed bandwidth），并且总带宽中还有很多剩余，它们还可以 <code>5:3</code> 的比例借用额外带宽，正如 我们所期望的。</p>
+<p>&emsp;&emsp;未分类的流量（unclassified traffic）会进入 <code>30:</code>，这个 band 只有很小的带宽，但能够从剩余的可用带宽中借带宽来用。由于我们用了的 SFQ（随机公平调度），我们还获得了 公平调度而没有增加额外成本！</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://www.m5xhsy.wiki">orz</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://www.m5xhsy.wiki/32caa6b08dbc/">https://www.m5xhsy.wiki/32caa6b08dbc/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://www.m5xhsy.wiki" target="_blank">Noal</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Qos/">Qos</a><a class="post-meta__tags" href="/tags/tc/">tc</a><a class="post-meta__tags" href="/tags/iprout2/">iprout2</a></div><div class="post_share"><div class="social-share" data-image="/statics/img/cover/tmp6.webp" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/butterfly-extsrc/1.1.3/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdnjs.cloudflare.com/ajax/libs/butterfly-extsrc/1.1.3/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/77ab4a2c6cde/"><img class="next-cover" src="/statics/img/cover/default.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Linux源码阅读之内核启动</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/statics/img/core/avatar.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">orz</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">9</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/m5xhsy" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:m5xhsy@163.com.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a><a class="social-icon" href="https://www.qq.com" target="_blank" title="QQ"><i class="fab fa-qq"></i></a><a class="social-icon" href="https://www.qq.com" target="_blank" title="WeChat"><i class="fab fa-weixin"></i></a><a class="social-icon" href="https://m5xhsy.github.io/NoteBook/" target="_blank" title="Blog"><i class="fas fa-dove"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">额。。。就一些笔记啦&#x1F47B;</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%A6%82%E8%BF%B0"><span class="toc-number">1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%9C%AF%E8%AF%AD"><span class="toc-number">2.</span> <span class="toc-text">术语</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6%E6%96%B9%E5%BC%8F"><span class="toc-number">2.1.</span> <span class="toc-text">流量控制方式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6%E5%AF%B9%E8%B1%A1"><span class="toc-number">2.2.</span> <span class="toc-text">流量控制对象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E7%9B%B8%E5%85%B3%E6%9C%AF%E8%AF%AD"><span class="toc-number">2.3.</span> <span class="toc-text">其他相关术语</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%93%8D%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="toc-number">3.</span> <span class="toc-text">操作原理</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%98%9F%E5%88%97%E5%92%8C%E9%98%9F%E5%88%97%E8%A7%84%E5%88%99"><span class="toc-number">4.</span> <span class="toc-text">队列和队列规则</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%97%A0%E7%B1%BB%E9%98%9F%E5%88%97%E8%A7%84%E5%88%99%EF%BC%88Classless-Qdisc%EF%BC%89"><span class="toc-number">4.1.</span> <span class="toc-text">无类队列规则（Classless Qdisc）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#pfifo-fast"><span class="toc-number">4.1.1.</span> <span class="toc-text">pfifo_fast</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B"><span class="toc-number">4.1.1.0.1.</span> <span class="toc-text">使用示例</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TBF"><span class="toc-number">4.1.2.</span> <span class="toc-text">TBF</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%82%E6%95%B0%E7%94%A8%E6%B3%95"><span class="toc-number">4.1.2.1.</span> <span class="toc-text">参数用法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B-1"><span class="toc-number">4.1.2.2.</span> <span class="toc-text">使用示例</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SFQ"><span class="toc-number">4.1.3.</span> <span class="toc-text">SFQ</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%82%E6%95%B0%E7%94%A8%E6%B3%95-1"><span class="toc-number">4.1.3.1.</span> <span class="toc-text">参数用法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B-2"><span class="toc-number">4.1.3.2.</span> <span class="toc-text">使用示例</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E7%B1%BB%E9%98%9F%E5%88%97%E8%A7%84%E5%88%99%EF%BC%88Classful-Qdisc%EF%BC%89"><span class="toc-number">4.2.</span> <span class="toc-text">分类队列规则（Classful Qdisc）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E8%A7%A3%E9%87%8A"><span class="toc-number">4.2.1.</span> <span class="toc-text">相关解释</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Classful-qdisc-amp-class-%E4%B8%AD%E7%9A%84-flow"><span class="toc-number">4.2.1.1.</span> <span class="toc-text">Classful qdisc &amp; class 中的 flow</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#roots-handles-siblings-and-parents"><span class="toc-number">4.2.1.2.</span> <span class="toc-text">roots, handles, siblings and parents</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E7%94%A8%E8%BF%87%E6%BB%A4%E5%99%A8%E5%AF%B9%E6%B5%81%E9%87%8F%E8%BF%9B%E8%A1%8C%E5%88%86%E7%B1%BB"><span class="toc-number">4.2.1.3.</span> <span class="toc-text">如何用过滤器对流量进行分类</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8C%85%E6%98%AF%E5%A6%82%E4%BD%95%E4%BB%8E-qdisc-%E5%87%BA%E9%98%9F%EF%BC%88dequeue%EF%BC%89%E5%88%B0%E7%A1%AC%E4%BB%B6%E7%9A%84"><span class="toc-number">4.2.1.4.</span> <span class="toc-text">包是如何从 qdisc 出队（dequeue）到硬件的</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PRIO"><span class="toc-number">4.2.2.</span> <span class="toc-text">PRIO</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%82%E6%95%B0%E7%94%A8%E6%B3%95-2"><span class="toc-number">4.2.2.1.</span> <span class="toc-text">参数用法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B-3"><span class="toc-number">4.2.2.2.</span> <span class="toc-text">使用示例</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CBQ"><span class="toc-number">4.2.3.</span> <span class="toc-text">CBQ</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3"><span class="toc-number">4.2.3.1.</span> <span class="toc-text">参数详解</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#CBQ-%E6%95%B4%E5%BD%A2%E8%AF%A6%E8%A7%A3"><span class="toc-number">4.2.3.1.1.</span> <span class="toc-text">CBQ 整形详解</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#CBQ-Classful-%E8%A1%8C%E4%B8%BA"><span class="toc-number">4.2.3.1.2.</span> <span class="toc-text">CBQ Classful 行为</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#CBQ%E5%85%B6%E4%BB%96%E5%8F%82%E6%95%B0"><span class="toc-number">4.2.3.1.3.</span> <span class="toc-text">CBQ其他参数</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B-4"><span class="toc-number">4.2.3.2.</span> <span class="toc-text">使用示例</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HTB"><span class="toc-number">4.2.4.</span> <span class="toc-text">HTB</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3-1"><span class="toc-number">4.2.4.1.</span> <span class="toc-text">参数详解</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B-5"><span class="toc-number">4.2.4.2.</span> <span class="toc-text">使用示例</span></a></li></ol></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/32caa6b08dbc/" title="Linux Tc命令流量控制"><img src="/statics/img/cover/tmp6.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Linux Tc命令流量控制"/></a><div class="content"><a class="title" href="/32caa6b08dbc/" title="Linux Tc命令流量控制">Linux Tc命令流量控制</a><time datetime="2023-09-06T02:43:03.000Z" title="发表于 2023-09-06 10:43:03">2023-09-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/77ab4a2c6cde/" title="Linux源码阅读之内核启动"><img src="/statics/img/cover/default.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Linux源码阅读之内核启动"/></a><div class="content"><a class="title" href="/77ab4a2c6cde/" title="Linux源码阅读之内核启动">Linux源码阅读之内核启动</a><time datetime="2023-03-24T11:53:52.000Z" title="发表于 2023-03-24 19:53:52">2023-03-24</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/6f10d12b60ca/" title="高等数学"><img src="/statics/img/cover/default.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="高等数学"/></a><div class="content"><a class="title" href="/6f10d12b60ca/" title="高等数学">高等数学</a><time datetime="2023-03-07T12:42:44.000Z" title="发表于 2023-03-07 20:42:44">2023-03-07</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/ea63687cfc0c/" title="【无线协议基础】快速基本服务转换(80211r)"><img src="/statics/img/cover/default.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="【无线协议基础】快速基本服务转换(80211r)"/></a><div class="content"><a class="title" href="/ea63687cfc0c/" title="【无线协议基础】快速基本服务转换(80211r)">【无线协议基础】快速基本服务转换(80211r)</a><time datetime="2023-02-01T13:15:54.000Z" title="发表于 2023-02-01 21:15:54">2023-02-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2467c0d4b507/" title="【无线协议基础】无线网络管理(80211v)"><img src="/statics/img/cover/default.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="【无线协议基础】无线网络管理(80211v)"/></a><div class="content"><a class="title" href="/2467c0d4b507/" title="【无线协议基础】无线网络管理(80211v)">【无线协议基础】无线网络管理(80211v)</a><time datetime="2023-02-01T13:15:50.000Z" title="发表于 2023-02-01 21:15:50">2023-02-01</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url('/statics/img/core/index.webp')"><div id="footer-wrap"><div class="footer_custom_text"><a href=""><img class="icp-icon" src=""><span>备案号：xxxxxx</span></a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/4.0.31/fancybox.umd.min.js"></script><div class="js-pjax"></div><script>if (window.MathJax) {window.MathJax.options.enableMenu=false;}</script><div id="right_menu"><img class="susu" src="/statics/img/core/susu.png" alt=""><div class="right_me"><ul><li onclick="right_button.selectGeneralOptions()"><span id="GeneralOptions">🍌 刷 新 一 下</span></li><li onclick="right_button.switchDarkMode()"><span id="DarkMode"></span></li><li onclick="right_button.switchReadMode()"><span id="ReadMode"></span></li><li onclick="right_button.goHome()"><span id="GoHome">🏡 回 到 主 页</span></li><li onclick="right_button.backToTop()"><span>🍈 回 到 顶 部</span></li></ul></div></div><script src="/statics/js/right-button.js"></script><canvas id="universe"></canvas><script src="/statics/js/universe.js"></script><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zindex="-1" count="99" mobile="false" src="/statics/js/canvas-nest.js"></script><canvas class="fireworks" mobile="false"></canvas><script src="https://cdnjs.cloudflare.com/ajax/libs/butterfly-extsrc/1.1.3/fireworks.min.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
